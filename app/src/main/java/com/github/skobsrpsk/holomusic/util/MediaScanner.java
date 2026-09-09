@@ -1,0 +1,400 @@
+package com.github.skobsrpsk.holomusic.util;
+
+import android.Manifest;
+import android.content.Context;
+import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.media.MediaMetadataRetriever;
+import android.os.Build;
+import android.provider.MediaStore;
+
+import com.github.skobsrpsk.holomusic.model.Album;
+import com.github.skobsrpsk.holomusic.model.Artist;
+import com.github.skobsrpsk.holomusic.model.Song;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Простой сканер медиатеки через MediaStore. Без внешних библиотек,
+ * без кэширования — читаем напрямую при каждом обращении к экрану.
+ * Для больших библиотек можно добавить кэш в SharedPreferences/SQLite позже.
+ */
+public class MediaScanner {
+
+    public static final int SORT_TITLE = 0;
+    public static final int SORT_ARTIST = 1;
+    public static final int SORT_ALBUM = 2;
+
+    /**
+     * Проверка разрешения на чтение аудио. Раньше запрос к MediaStore
+     * выполнялся сразу в onCreate, не дожидаясь ответа на системный диалог
+     * разрешения — на большинстве прошивок запрос без разрешения просто
+     * возвращал пустой курсор, но как минимум на Android 9 у части устройств
+     * это оборачивается SecurityException и приложение падает мгновенно при
+     * первом запуске. Теперь каждый метод, дергающий MediaStore, сначала
+     * проверяет разрешение сам и возвращает пустой список вместо падения —
+     * это работает как страховка независимо от того, в каком порядке экраны
+     * вызывают загрузку данных.
+     */
+    public static boolean hasPermission(Context context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            return true; // до Android 6 runtime-разрешения не нужны
+        }
+        String permission = Build.VERSION.SDK_INT >= 33
+                ? Manifest.permission.READ_MEDIA_AUDIO
+                : Manifest.permission.READ_EXTERNAL_STORAGE;
+        return context.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    /** Сортировка уже готового списка (для данных из LibraryCache — SQL ORDER BY там не применялся). */
+    public static void sortSongs(List<Song> songs, int sortMode) {
+        java.util.Comparator<Song> comparator;
+        switch (sortMode) {
+            case SORT_ARTIST:
+                comparator = new java.util.Comparator<Song>() {
+                    @Override
+                    public int compare(Song a, Song b) {
+                        int c = nullSafeCompare(a.artist, b.artist);
+                        return c != 0 ? c : nullSafeCompare(a.title, b.title);
+                    }
+                };
+                break;
+            case SORT_ALBUM:
+                comparator = new java.util.Comparator<Song>() {
+                    @Override
+                    public int compare(Song a, Song b) {
+                        int c = nullSafeCompare(a.album, b.album);
+                        return c != 0 ? c : nullSafeCompare(a.title, b.title);
+                    }
+                };
+                break;
+            default:
+                comparator = new java.util.Comparator<Song>() {
+                    @Override
+                    public int compare(Song a, Song b) {
+                        return nullSafeCompare(a.title, b.title);
+                    }
+                };
+        }
+        java.util.Collections.sort(songs, comparator);
+    }
+
+    private static int nullSafeCompare(String a, String b) {
+        if (a == null) a = "";
+        if (b == null) b = "";
+        return a.compareToIgnoreCase(b);
+    }
+
+    public static List<Song> getAllSongs(Context context, int sortMode) {
+        if (!hasPermission(context)) return new ArrayList<>();
+        List<Song> songs = new ArrayList<>();
+
+        String sortOrder;
+        switch (sortMode) {
+            case SORT_ARTIST:
+                sortOrder = MediaStore.Audio.Media.ARTIST + " ASC, " + MediaStore.Audio.Media.TITLE + " ASC";
+                break;
+            case SORT_ALBUM:
+                sortOrder = MediaStore.Audio.Media.ALBUM + " ASC, " + MediaStore.Audio.Media.TITLE + " ASC";
+                break;
+            default:
+                sortOrder = MediaStore.Audio.Media.TITLE + " ASC";
+        }
+
+        String[] projection = {
+                MediaStore.Audio.Media._ID,
+                MediaStore.Audio.Media.TITLE,
+                MediaStore.Audio.Media.ARTIST,
+                MediaStore.Audio.Media.ARTIST_ID,
+                MediaStore.Audio.Media.ALBUM,
+                MediaStore.Audio.Media.ALBUM_ID,
+                MediaStore.Audio.Media.DATA,
+                MediaStore.Audio.Media.DURATION
+        };
+
+        String selection = MediaStore.Audio.Media.IS_MUSIC + " != 0";
+
+        Cursor cursor = context.getContentResolver().query(
+                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                projection, selection, null, sortOrder);
+
+        if (cursor != null) {
+            try {
+                int idCol = cursor.getColumnIndex(MediaStore.Audio.Media._ID);
+                int titleCol = cursor.getColumnIndex(MediaStore.Audio.Media.TITLE);
+                int artistCol = cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST);
+                int artistIdCol = cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST_ID);
+                int albumCol = cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM);
+                int albumIdCol = cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM_ID);
+                int dataCol = cursor.getColumnIndex(MediaStore.Audio.Media.DATA);
+                int durationCol = cursor.getColumnIndex(MediaStore.Audio.Media.DURATION);
+
+                while (cursor.moveToNext()) {
+                    songs.add(new Song(
+                            cursor.getLong(idCol),
+                            cursor.getString(titleCol),
+                            cursor.getString(artistCol),
+                            cursor.getLong(artistIdCol),
+                            cursor.getString(albumCol),
+                            cursor.getLong(albumIdCol),
+                            cursor.getString(dataCol),
+                            cursor.getLong(durationCol)
+                    ));
+                }
+            } finally {
+                cursor.close();
+            }
+        }
+
+        return songs;
+    }
+
+    /**
+     * Список альбомов строится группировкой уже отфильтрованных треков
+     * (getAllSongs() учитывает только IS_MUSIC != 0), а не отдельным запросом
+     * к MediaStore.Audio.Albums. Та таблица — общая агрегация по всей
+     * медиатеке устройства и может содержать "альбомы", в которых нет ни
+     * одного реального музыкального трека (голосовые заметки, WhatsApp-аудио
+     * и т.п. группируются в свои psuedo-альбомы). Группировка по уже
+     * отфильтрованным трекам гарантирует, что в списке будут только альбомы
+     * с реальной музыкой.
+     */
+    public static List<Album> getAlbumsFromSongs(List<Song> songs) {
+        java.util.LinkedHashMap<Long, Album> byId = new java.util.LinkedHashMap<>();
+        for (Song s : songs) {
+            Album album = byId.get(s.albumId);
+            if (album == null) {
+                album = new Album(s.albumId, s.album, s.artist, 0);
+                byId.put(s.albumId, album);
+            }
+            album.songCount++;
+        }
+        List<Album> result = new ArrayList<>(byId.values());
+        java.util.Collections.sort(result, new java.util.Comparator<Album>() {
+            @Override
+            public int compare(Album a, Album b) {
+                String an = a.name == null ? "" : a.name;
+                String bn = b.name == null ? "" : b.name;
+                return an.compareToIgnoreCase(bn);
+            }
+        });
+        return result;
+    }
+
+    /**
+     * Список артистов строится группировкой уже отфильтрованных треков —
+     * той же логикой, что и getAlbumsFromSongs(). Раньше здесь был отдельный
+     * запрос к MediaStore.Audio.Artists, который (а) не учитывал выбранные
+     * в настройках папки библиотеки — раздел "Исполнители" показывал артистов
+     * из треков вне ограниченных папок, хотя "Все треки" их уже не показывал;
+     * и (б) как и с альбомами, мог включать артистов из не-музыкальных
+     * файлов, не проходящих IS_MUSIC. Группировка по уже отфильтрованному
+     * списку решает обе проблемы разом.
+     */
+    public static List<Artist> getArtistsFromSongs(List<Song> songs) {
+        java.util.LinkedHashMap<Long, Artist> byId = new java.util.LinkedHashMap<>();
+        java.util.Map<Long, java.util.Set<Long>> albumsByArtist = new java.util.HashMap<>();
+
+        for (Song s : songs) {
+            Artist artist = byId.get(s.artistId);
+            if (artist == null) {
+                artist = new Artist(s.artistId, s.artist, 0, 0);
+                byId.put(s.artistId, artist);
+                albumsByArtist.put(s.artistId, new java.util.HashSet<Long>());
+            }
+            artist.songCount++;
+            albumsByArtist.get(s.artistId).add(s.albumId);
+        }
+
+        List<Artist> result = new ArrayList<>(byId.values());
+        for (Artist a : result) {
+            a.albumCount = albumsByArtist.get(a.id).size();
+        }
+
+        java.util.Collections.sort(result, new java.util.Comparator<Artist>() {
+            @Override
+            public int compare(Artist a, Artist b) {
+                String an = a.name == null ? "" : a.name;
+                String bn = b.name == null ? "" : b.name;
+                return an.compareToIgnoreCase(bn);
+            }
+        });
+        return result;
+    }
+
+    /** Один трек по его MediaStore id — нужен для разрешения id в плейлистах. */
+    public static Song getSongById(Context context, long songId) {
+        List<Song> result = querySongsBy(context, MediaStore.Audio.Media._ID + "=?",
+                new String[]{String.valueOf(songId)}, null);
+        return result.isEmpty() ? null : result.get(0);
+    }
+
+    /** Треки конкретного альбома — запрос напрямую по album_id, без промежуточной фильтрации. */
+    public static List<Song> getSongsForAlbum(Context context, long albumId) {
+        return querySongsBy(context, MediaStore.Audio.Media.ALBUM_ID + "=?",
+                new String[]{String.valueOf(albumId)},
+                MediaStore.Audio.Media.TITLE + " ASC");
+    }
+
+    /**
+     * Треки конкретного артиста — запрос напрямую по artist_id (не по имени!).
+     * Раньше фильтрация шла по строковому совпадению artist.equals(s.artist),
+     * а счётчик треков брался из MediaStore.Audio.Artists.NUMBER_OF_TRACKS,
+     * который группирует по artist_id. Из-за этого если у части треков имя
+     * артиста отличалось написанием (регистр, лишний пробел, "feat." и т.п.),
+     * они физически принадлежали тому же artist_id, но не проходили строковое
+     * сравнение — и терялись из списка, хотя счётчик их учитывал. Запрос по
+     * artist_id полностью убирает это расхождение.
+     */
+    public static List<Song> getSongsForArtist(Context context, long artistId) {
+        return querySongsBy(context, MediaStore.Audio.Media.ARTIST_ID + "=?",
+                new String[]{String.valueOf(artistId)},
+                MediaStore.Audio.Media.ALBUM + " ASC, " + MediaStore.Audio.Media.TITLE + " ASC");
+    }
+
+    private static List<Song> querySongsBy(Context context, String extraSelection, String[] selectionArgs, String sortOrder) {
+        List<Song> songs = new ArrayList<>();
+        if (!hasPermission(context)) return songs;
+
+        String[] projection = {
+                MediaStore.Audio.Media._ID,
+                MediaStore.Audio.Media.TITLE,
+                MediaStore.Audio.Media.ARTIST,
+                MediaStore.Audio.Media.ARTIST_ID,
+                MediaStore.Audio.Media.ALBUM,
+                MediaStore.Audio.Media.ALBUM_ID,
+                MediaStore.Audio.Media.DATA,
+                MediaStore.Audio.Media.DURATION
+        };
+
+        String selection = MediaStore.Audio.Media.IS_MUSIC + " != 0 AND " + extraSelection;
+
+        Cursor cursor = context.getContentResolver().query(
+                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                projection, selection, selectionArgs, sortOrder);
+
+        if (cursor != null) {
+            try {
+                int idCol = cursor.getColumnIndex(MediaStore.Audio.Media._ID);
+                int titleCol = cursor.getColumnIndex(MediaStore.Audio.Media.TITLE);
+                int artistCol = cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST);
+                int artistIdCol = cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST_ID);
+                int albumCol = cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM);
+                int albumIdCol = cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM_ID);
+                int dataCol = cursor.getColumnIndex(MediaStore.Audio.Media.DATA);
+                int durationCol = cursor.getColumnIndex(MediaStore.Audio.Media.DURATION);
+
+                while (cursor.moveToNext()) {
+                    songs.add(new Song(
+                            cursor.getLong(idCol),
+                            cursor.getString(titleCol),
+                            cursor.getString(artistCol),
+                            cursor.getLong(artistIdCol),
+                            cursor.getString(albumCol),
+                            cursor.getLong(albumIdCol),
+                            cursor.getString(dataCol),
+                            cursor.getLong(durationCol)
+                    ));
+                }
+            } finally {
+                cursor.close();
+            }
+        }
+
+        return songs;
+    }
+
+    /**
+     * Оставляет только треки, чей путь лежит внутри одной из выбранных папок.
+     * Если список папок пуст — ограничения нет, возвращается исходный список.
+     */
+    public static List<Song> filterByFolders(List<Song> songs, List<String> folders) {
+        if (folders == null || folders.isEmpty()) return songs;
+        List<Song> result = new ArrayList<>();
+        for (Song s : songs) {
+            if (s.path == null) continue;
+            for (String folder : folders) {
+                if (s.path.startsWith(folder)) {
+                    result.add(s);
+                    break;
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Фильтр по типу файла и минимальной длине — применяется на этапе
+     * скана, до попадания в кэш, поэтому исключённые файлы не сканируются
+     * никак, а не просто прячутся в интерфейсе.
+     */
+    public static List<Song> filterByTypeAndDuration(List<Song> songs, java.util.Set<String> excludedExtensions, int minDurationSeconds) {
+        if ((excludedExtensions == null || excludedExtensions.isEmpty()) && minDurationSeconds <= 0) {
+            return songs;
+        }
+        List<Song> result = new ArrayList<>();
+        long minDurationMs = minDurationSeconds * 1000L;
+        for (Song s : songs) {
+            if (minDurationMs > 0 && s.duration < minDurationMs) continue;
+            if (excludedExtensions != null && !excludedExtensions.isEmpty()) {
+                String ext = extensionOf(s.path);
+                if (ext != null && excludedExtensions.contains(ext)) continue;
+            }
+            result.add(s);
+        }
+        return result;
+    }
+
+    private static String extensionOf(String path) {
+        if (path == null) return null;
+        int dot = path.lastIndexOf('.');
+        if (dot < 0 || dot == path.length() - 1) return null;
+        return path.substring(dot + 1).toLowerCase(java.util.Locale.ROOT);
+    }
+
+    /**
+     * MediaStore иногда не может разобрать теги (нестандартная кодировка,
+     * ID3v2.4 и т.п.) и подставляет "<unknown>". В этом случае пробуем
+     * дочитать артиста/альбом/название напрямую из файла через
+     * MediaMetadataRetriever — тот же путь, которым пользуются сторонние
+     * плееры, парсящие теги сами. Вызывать только вне UI-потока: открытие
+     * файла и разбор тегов занимает заметное время на больших библиотеках.
+     */
+    public static void resolveMissingTags(Song song) {
+        if (!isUnknown(song.artist) && !isUnknown(song.album) && !isEmpty(song.title)) {
+            return;
+        }
+        MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+        try {
+            retriever.setDataSource(song.path);
+            if (isUnknown(song.artist)) {
+                String artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST);
+                if (!isEmpty(artist)) song.artist = artist;
+            }
+            if (isUnknown(song.album)) {
+                String album = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM);
+                if (!isEmpty(album)) song.album = album;
+            }
+            if (isEmpty(song.title)) {
+                String title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
+                if (!isEmpty(title)) song.title = title;
+            }
+        } catch (Exception ignored) {
+            // Повреждённый файл или неподдерживаемый формат — оставляем как есть.
+        } finally {
+            try {
+                retriever.release();
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+    private static boolean isUnknown(String value) {
+        return isEmpty(value) || value.equalsIgnoreCase("<unknown>") || value.equalsIgnoreCase("unknown");
+    }
+
+    private static boolean isEmpty(String value) {
+        return value == null || value.trim().isEmpty();
+    }
+}

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_selected="true">
+        <layer-list>
+            <item>
+                <color android:color="@color/actionbar_grey" />
+            </item>
+            <item android:gravity="bottom" android:height="2dp">
+                <color android:color="@color/holo_blue" />
+            </item>
+        </layer-list>
+    </item>
+    <item>
+        <color android:color="@color/actionbar_grey" />
+    </item>
+</selector>

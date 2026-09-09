@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/mini_player_root"
+    android:layout_width="match_parent"
+    android:layout_height="66dp"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:background="@color/actionbar_grey"
+    android:paddingLeft="10dp"
+    android:paddingRight="6dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:visibility="gone">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:paddingLeft="4dp">
+
+        <TextView
+            android:id="@+id/mini_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_primary"
+            android:textSize="15sp"
+            android:singleLine="true"
+            android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/mini_artist"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp"
+            android:singleLine="true"
+            android:ellipsize="end" />
+    </LinearLayout>
+
+    <ImageButton
+        android:id="@+id/mini_btn_previous"
+        android:layout_width="46dp"
+        android:layout_height="46dp"
+        android:padding="9dp"
+        android:background="@drawable/list_selector_holo"
+        android:src="@android:drawable/ic_media_previous"
+        android:scaleType="fitCenter" />
+
+    <ImageButton
+        android:id="@+id/mini_btn_play_pause"
+        android:layout_width="46dp"
+        android:layout_height="46dp"
+        android:padding="9dp"
+        android:background="@drawable/list_selector_holo"
+        android:src="@android:drawable/ic_media_play"
+        android:scaleType="fitCenter" />
+
+    <ImageButton
+        android:id="@+id/mini_btn_next"
+        android:layout_width="46dp"
+        android:layout_height="46dp"
+        android:padding="9dp"
+        android:background="@drawable/list_selector_holo"
+        android:src="@android:drawable/ic_media_next"
+        android:scaleType="fitCenter" />
+
+    <ImageButton
+        android:id="@+id/mini_btn_stop"
+        android:layout_width="46dp"
+        android:layout_height="46dp"
+        android:padding="9dp"
+        android:background="@drawable/list_selector_holo"
+        android:src="@android:drawable/ic_menu_close_clear_cancel"
+        android:scaleType="fitCenter" />
+
+</LinearLayout>

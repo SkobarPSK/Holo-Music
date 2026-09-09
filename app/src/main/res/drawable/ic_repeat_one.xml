@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Вариант "повтор одного трека" — та же иконка повтора, плюс маленькая точка-
+  бейдж в правом нижнем углу. Раньше точку ставили строго по центру — это
+  подходило старой кольцевой иконке (правильный круг, дырка ровно посередине),
+  но новая иконка (растровая, из двух несимметричных дуг со стрелками) не имеет
+  предсказуемого пустого места в центре: точка там рисковала наложиться на
+  саму стрелку. Угол — надёжное место при любой форме базовой иконки.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/ic_repeat" />
+    <item android:gravity="bottom|right" android:width="6dp" android:height="6dp">
+        <shape android:shape="oval">
+            <solid android:color="@color/text_primary" />
+        </shape>
+    </item>
+</layer-list>

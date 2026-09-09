@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.github.skobsrpsk.holomusic">
+
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@style/AppTheme.Holo.Dark"
+        android:hardwareAccelerated="true"
+        android:requestLegacyExternalStorage="true">
+
+        <activity
+            android:name=".MainActivity"
+            android:label="@string/app_name"
+            android:launchMode="singleTop"
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".TrackListActivity"
+            android:label="@string/app_name"
+            android:parentActivityName=".MainActivity"
+            android:screenOrientation="portrait" />
+
+        <activity
+            android:name=".NowPlayingActivity"
+            android:label="@string/now_playing"
+            android:parentActivityName=".MainActivity"
+            android:launchMode="singleTop"
+            android:screenOrientation="portrait" />
+
+        <activity
+            android:name=".SettingsActivity"
+            android:label="@string/settings"
+            android:screenOrientation="portrait" />
+
+        <activity
+            android:name=".SettingsInterfaceActivity"
+            android:parentActivityName=".SettingsActivity"
+            android:screenOrientation="portrait" />
+
+        <activity
+            android:name=".SettingsLibraryActivity"
+            android:parentActivityName=".SettingsActivity"
+            android:screenOrientation="portrait" />
+
+        <activity
+            android:name=".SettingsPlaybackActivity"
+            android:parentActivityName=".SettingsActivity"
+            android:screenOrientation="portrait" />
+
+        <activity
+            android:name=".SettingsEqualizerActivity"
+            android:parentActivityName=".SettingsPlaybackActivity"
+            android:screenOrientation="portrait" />
+
+        <activity
+            android:name=".SettingsAboutActivity"
+            android:parentActivityName=".SettingsActivity"
+            android:screenOrientation="portrait" />
+
+        <activity
+            android:name=".FolderBrowserActivity"
+            android:label="@string/add_folder"
+            android:parentActivityName=".SettingsLibraryActivity"
+            android:screenOrientation="portrait" />
+
+        <activity
+            android:name=".PlaylistDetailActivity"
+            android:parentActivityName=".MainActivity"
+            android:screenOrientation="portrait" />
+
+        <activity
+            android:name=".PlaylistTrackPickerActivity"
+            android:parentActivityName=".PlaylistDetailActivity"
+            android:screenOrientation="portrait" />
+
+        <service
+            android:name=".PlayerService"
+            android:enabled="true"
+            android:exported="false" />
+
+    </application>
+</manifest>

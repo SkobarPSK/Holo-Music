@@ -1,0 +1,30 @@
+apply plugin: 'com.android.application'
+
+android {
+    namespace 'com.github.skobsrpsk.holomusic'
+    compileSdkVersion 30
+
+    defaultConfig {
+        applicationId "com.github.skobsrpsk.holomusic"
+        minSdkVersion 16
+        targetSdkVersion 29
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    // Никаких сторонних библиотек — только стандартный Android SDK.
+}

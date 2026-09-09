@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg_black">#000000</color>
+    <color name="bg_dark">#121212</color>
+    <color name="drawer_bg">#161616</color>
+    <color name="actionbar_grey">#2D2D2D</color>
+    <color name="divider_grey">#40FFFFFF</color>
+    <color name="row_separator">#242424</color>
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#AAAAAA</color>
+    <color name="holo_blue">#33B5E5</color>
+    <color name="holo_blue_dark">#0099CC</color>
+    <color name="list_pressed">#262626</color>
+    <color name="now_playing_row_bg">#1A33B5E5</color>
+</resources>

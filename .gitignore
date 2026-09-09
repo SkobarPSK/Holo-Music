@@ -1,0 +1,30 @@
+# Gradle
+.gradle/
+build/
+app/build/
+
+# Local config (содержит пути к SDK на конкретной машине — не для репозитория)
+local.properties
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+.navigation/
+captures/
+
+# Keystore (никогда не коммить реальный ключ подписи)
+*.jks
+*.keystore
+
+# Логи, кэши
+*.log
+.DS_Store
+
+# Сборочные артефакты
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# CodeAssist / другие мобильные IDE
+.cxx/

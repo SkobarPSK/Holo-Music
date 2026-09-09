@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingTop="6dp"
+    android:paddingBottom="6dp">
+
+    <TextView
+        android:id="@+id/text_folder_path"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textColor="@color/text_primary"
+        android:textSize="13sp"
+        android:singleLine="true"
+        android:ellipsize="start" />
+
+    <TextView
+        android:id="@+id/btn_remove_folder"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:padding="6dp"
+        android:text="@string/remove_folder"
+        android:textColor="@color/holo_blue"
+        android:textSize="13sp"
+        android:background="@drawable/list_selector_holo"
+        android:clickable="true"
+        android:focusable="true" />
+
+</LinearLayout>

@@ -11,7 +11,8 @@
         android:cacheColorHint="@android:color/transparent"
         android:divider="@color/divider_grey"
         android:dividerHeight="1dp"
-        android:listSelector="@drawable/list_selector_holo" />
+        android:listSelector="@drawable/list_selector_holo"
+        android:layoutAnimation="@anim/list_layout_animation" />
 
     <TextView
         android:id="@+id/empty_text"

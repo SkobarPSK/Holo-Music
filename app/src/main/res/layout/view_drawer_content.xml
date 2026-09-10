@@ -24,6 +24,7 @@
             android:layout_height="match_parent"
             android:divider="@color/divider_grey"
             android:dividerHeight="1dp"
+            android:layoutAnimation="@anim/list_layout_animation"
             android:cacheColorHint="@android:color/transparent"
             android:listSelector="@drawable/list_selector_holo" />
 

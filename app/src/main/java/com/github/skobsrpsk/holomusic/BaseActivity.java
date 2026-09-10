@@ -181,9 +181,36 @@ public abstract class BaseActivity extends Activity implements PlaybackListener 
         applyMiniPlayerVisibility();
     }
 
+    private static final int MINI_PLAYER_FADE_MS = 150;
+
     private void applyMiniPlayerVisibility() {
         if (miniPlayerRoot == null) return;
-        miniPlayerRoot.setVisibility(hasCurrentSong && !hiddenByDrawer ? View.VISIBLE : View.GONE);
+        boolean shouldShow = hasCurrentSong && !hiddenByDrawer;
+
+        // Снимаем слушателя перед cancel(): у Android cancel() тоже
+        // вызывает onAnimationEnd() отменяемой анимации, и если это была
+        // недоигравшая fade-out (с setVisibility(GONE) в конце), она бы
+        // спрятала плеер именно в момент, когда мы решили его показать.
+        // Раньше здесь ещё было сравнение с getVisibility(), но во время
+        // fade-out он остаётся VISIBLE до самого конца анимации — это
+        // давало ложное "уже в нужном состоянии" и плеер пропадал молча.
+        miniPlayerRoot.animate().setListener(null).cancel();
+
+        if (shouldShow) {
+            if (miniPlayerRoot.getVisibility() != View.VISIBLE) {
+                miniPlayerRoot.setAlpha(0f);
+                miniPlayerRoot.setVisibility(View.VISIBLE);
+            }
+            miniPlayerRoot.animate().alpha(1f).setDuration(MINI_PLAYER_FADE_MS).start();
+        } else {
+            miniPlayerRoot.animate().alpha(0f).setDuration(MINI_PLAYER_FADE_MS)
+                    .setListener(new android.animation.AnimatorListenerAdapter() {
+                        @Override
+                        public void onAnimationEnd(android.animation.Animator animation) {
+                            miniPlayerRoot.setVisibility(View.GONE);
+                        }
+                    }).start();
+        }
     }
 
     @Override

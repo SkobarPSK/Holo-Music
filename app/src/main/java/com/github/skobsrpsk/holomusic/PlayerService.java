@@ -368,8 +368,10 @@ public class PlayerService extends Service {
                 public boolean onError(MediaPlayer mp, int what, int extra) {
                     if (mp != mediaPlayer) return true;
                     // Битый/неподдерживаемый файл — не зависаем молча,
-                    // едем дальше по очереди.
-                    next();
+                    // едем дальше по очереди. Намеренно не next(): под
+                    // REPEAT_ONE он бы просто перезапустил этот же битый
+                    // файл и тут же снова упал в onError.
+                    skipDueToError();
                     return true;
                 }
             });
@@ -439,6 +441,36 @@ public class PlayerService extends Service {
 
     public void next() {
         if (queue.isEmpty()) return;
+        if (repeatMode == REPEAT_ONE) {
+            // Повтор одного трека — Next не должен уводить по очереди
+            // дальше, только перезапускать текущий трек. Раньше это
+            // обеспечивалось только для естественного завершения трека
+            // (onTrackFinished), а вручную нажатый Next в конце очереди
+            // просто перезапускал последний трек — так же выглядело
+            // "работает", но по совпадению с тем же багом, что чинили
+            // для REPEAT_OFF (п.1 прошлого релиза). Когда тот баг убрали,
+            // REPEAT_ONE с ним заодно перестал "перезапускать" и здесь
+            // выглядел сломанным. Явно обрабатываем режим здесь — работает
+            // одинаково из любой позиции в очереди, не только на границе.
+            playCurrent();
+            return;
+        }
+        advanceToNextInQueue();
+    }
+
+    /**
+     * Отдельный путь для восстановления после ошибки воспроизведения —
+     * всегда уходит на следующий трек в очереди, даже если включён
+     * REPEAT_ONE. Если звать здесь next(), битый/неподдерживаемый файл
+     * под REPEAT_ONE запускался бы через playCurrent() заново, тут же
+     * снова падал в onError и уходил в бесконечный цикл повторных попыток.
+     */
+    private void skipDueToError() {
+        advanceToNextInQueue();
+    }
+
+    private void advanceToNextInQueue() {
+        if (queue.isEmpty()) return;
         if (shuffle) {
             if (shuffleHistoryPos < shuffleHistory.size() - 1) {
                 // Мы до этого уже уходили "назад" по shuffle-истории —
@@ -480,24 +512,33 @@ public class PlayerService extends Service {
     }
 
     /**
-     * Очередь без повтора дошла до конца естественным образом (через
-     * onCompletion) — MediaPlayer уже сам остановился и isPlaying() честно
-     * вернёт false, но уведомление/MediaSession/мини-плеер об этом ещё не
-     * знают, потому что playCurrent()/togglePlayPause() тут не вызываются.
+     * Очередь без повтора дошла до конца — либо естественно (через
+     * onCompletion, MediaPlayer уже сам остановился), либо вручную нажали
+     * Next на последнем треке. В первом случае isPlaying() честно вернёт
+     * false; во втором трек мог всё ещё физически играть — берём реальное
+     * состояние плеера, а не считаем его остановленным заранее, иначе
+     * уведомление/мини-плеер соврут о паузе поверх реально играющего трека.
      * currentIndex и очередь не трогаем — последний трек остаётся
-     * выбранным и виден в мини-плеере, просто на паузе.
+     * выбранным и виден в мини-плеере.
      */
     private void notifyStoppedAtQueueEnd() {
-        updateSessionPlaybackState(false);
+        boolean playing = isPlaying();
+        updateSessionPlaybackState(playing);
         Song song = getCurrentSong();
         if (song != null) {
-            startForeground(NOTIFICATION_ID, buildNotification(song, false));
+            startForeground(NOTIFICATION_ID, buildNotification(song, playing));
         }
-        if (listener != null) listener.onPlaybackStateChanged(false);
+        if (listener != null) listener.onPlaybackStateChanged(playing);
     }
 
     public void previous() {
         if (queue.isEmpty()) return;
+        if (repeatMode == REPEAT_ONE) {
+            // Симметрично next() — Previous тоже просто перезапускает
+            // текущий трек, а не уводит по очереди назад.
+            playCurrent();
+            return;
+        }
         if (shuffle) {
             if (shuffleHistoryPos > 0) {
                 shuffleHistoryPos--;

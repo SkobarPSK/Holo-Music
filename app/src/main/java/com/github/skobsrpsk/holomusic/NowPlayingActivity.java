@@ -125,6 +125,26 @@ public class NowPlayingActivity extends Activity implements PlaybackListener {
                         // из одного трека.
                         finish();
                     }
+
+                    @Override
+                    public void onSongUpdated() {
+                        // В отличие от удаления, трек никуда не делся — экран
+                        // закрывать не нужно. Но playerService.getCurrentSong()
+                        // всё ещё держит Song, прочитанный ДО правки тегов —
+                        // сначала подтягиваем свежие title/artist/album из
+                        // MediaStore (он уже актуален — SongActions успел его
+                        // пересканировать) и патчим ими живую очередь, и только
+                        // потом перерисовываем экран.
+                        if (bound) {
+                            Song refreshed = com.github.skobsrpsk.holomusic.util.MediaScanner.getSongById(
+                                    NowPlayingActivity.this, song.id);
+                            if (refreshed != null) {
+                                playerService.refreshSongMetadata(
+                                        refreshed.id, refreshed.title, refreshed.artist, refreshed.album);
+                            }
+                        }
+                        refreshUi();
+                    }
                 });
             }
         });

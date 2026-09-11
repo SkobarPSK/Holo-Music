@@ -120,6 +120,26 @@ public class LibraryCache extends SQLiteOpenHelper {
         return result;
     }
 
+    /**
+     * Точечное обновление одной строки — используется после редактирования
+     * тегов трека, чтобы не гонять полный replaceAll() по всей библиотеке
+     * ради одного файла. id — PRIMARY KEY, поэтому это просто перезаписывает
+     * существующую строку (или создаёт её, если её почему-то не было).
+     */
+    public void updateSong(Song s) {
+        SQLiteDatabase db = getWritableDatabase();
+        ContentValues cv = new ContentValues();
+        cv.put("id", s.id);
+        cv.put("title", s.title);
+        cv.put("artist", s.artist);
+        cv.put("artist_id", s.artistId);
+        cv.put("album", s.album);
+        cv.put("album_id", s.albumId);
+        cv.put("path", s.path);
+        cv.put("duration", s.duration);
+        db.insertWithOnConflict(TABLE, null, cv, SQLiteDatabase.CONFLICT_REPLACE);
+    }
+
     public void clear() {
         getWritableDatabase().delete(TABLE, null, null);
     }

@@ -270,6 +270,19 @@ public class MediaScanner {
         return result.isEmpty() ? null : result.get(0);
     }
 
+    /**
+     * Трек по пути к файлу — нужен, чтобы после правки тегов и
+     * MediaScannerConnection.scanFile() забрать у MediaStore уже
+     * актуальные значения (включая, возможно, новый artist_id/album_id —
+     * они назначаются MediaStore по строке тега, а не нами).
+     */
+    public static Song getSongByPath(Context context, String path) {
+        if (path == null) return null;
+        List<Song> result = querySongsBy(context, MediaStore.Audio.Media.DATA + "=?",
+                new String[]{path}, null);
+        return result.isEmpty() ? null : result.get(0);
+    }
+
     /** Треки конкретного альбома — запрос напрямую по album_id, без промежуточной фильтрации. */
     public static List<Song> getSongsForAlbum(Context context, long albumId) {
         return querySongsBy(context, MediaStore.Audio.Media.ALBUM_ID + "=?",

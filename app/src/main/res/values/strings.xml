@@ -68,6 +68,17 @@
     <string name="set_as_ringtone">Поставить на звонок</string>
     <string name="delete_song">Удалить</string>
     <string name="delete_song_confirm">Удалить «%1$s» с устройства?</string>
+    <string name="edit_tags">Редактировать теги</string>
+    <string name="tag_title">Название</string>
+    <string name="tag_artist">Исполнитель</string>
+    <string name="tag_album">Альбом</string>
+    <string name="tag_track">Трек №</string>
+    <string name="tag_year">Год</string>
+    <string name="tag_genre">Жанр</string>
+    <string name="save">Сохранить</string>
+    <string name="tags_saved">Теги сохранены</string>
+    <string name="tags_save_failed">Не удалось сохранить теги</string>
+    <string name="tag_edit_unsupported_format">Редактирование тегов пока поддерживается только для MP3.</string>
     <string name="move_up">Вверх</string>
     <string name="move_down">Вниз</string>
     <string name="play_all">Играть все</string>

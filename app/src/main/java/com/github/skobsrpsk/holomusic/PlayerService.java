@@ -798,6 +798,36 @@ public class PlayerService extends Service {
         mediaSession.setActive(true);
     }
 
+    /**
+     * Точечно обновляет title/artist/album уже загруженного в очередь трека
+     * после правки его тегов "на лету" — сам Song в очереди был прочитан ДО
+     * правки и всё ещё хранит старые значения, а полную перезагрузку
+     * очереди ради одного трека делать незачем. Если это ещё и текущий
+     * трек — обновляем заодно уведомление/MediaSession и зовём listener,
+     * чтобы экран "Сейчас играет" тоже перерисовался.
+     */
+    public void refreshSongMetadata(long songId, String title, String artist, String album) {
+        boolean isCurrent = false;
+        for (Song s : queue) {
+            if (s.id == songId) {
+                s.title = title;
+                s.artist = artist;
+                s.album = album;
+            }
+        }
+        if (currentIndex >= 0 && currentIndex < queue.size() && queue.get(currentIndex).id == songId) {
+            isCurrent = true;
+        }
+        if (isCurrent) {
+            Song current = getCurrentSong();
+            if (current != null) {
+                updateSessionMetadata(current);
+                startForeground(NOTIFICATION_ID, buildNotification(current, isPlaying()));
+            }
+            if (listener != null) listener.onTrackChanged();
+        }
+    }
+
     private void updateSessionMetadata(Song song) {
         if (mediaSession == null) return;
         MediaMetadata.Builder builder = new MediaMetadata.Builder()

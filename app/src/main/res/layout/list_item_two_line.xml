@@ -11,11 +11,12 @@
 
     <TextView
         android:id="@+id/text_now_playing_marker"
-        android:layout_width="26dp"
+        android:layout_width="30dp"
         android:layout_height="wrap_content"
         android:text="&#9654;"
         android:textColor="@color/holo_blue"
-        android:textSize="20sp"
+        android:textSize="26sp"
+        android:textStyle="bold"
         android:gravity="center"
         android:visibility="invisible" />
 

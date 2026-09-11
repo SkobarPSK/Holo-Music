@@ -459,12 +459,41 @@ public class PlayerService extends Service {
                 currentIndex = nextIndex;
             }
         } else {
-            currentIndex++;
-            if (currentIndex >= queue.size()) {
-                currentIndex = (repeatMode == REPEAT_ALL) ? 0 : queue.size() - 1;
+            int nextIndex = currentIndex + 1;
+            if (nextIndex >= queue.size()) {
+                if (repeatMode == REPEAT_ALL) {
+                    currentIndex = 0;
+                } else {
+                    // Дошли до конца очереди без повтора — раньше тут всё
+                    // равно вызывался playCurrent(), из-за чего последний
+                    // трек перезапускался по кругу. Вместо этого просто
+                    // останавливаемся на месте, как уже делает shuffle-ветка
+                    // выше в этом же методе.
+                    notifyStoppedAtQueueEnd();
+                    return;
+                }
+            } else {
+                currentIndex = nextIndex;
             }
         }
         playCurrent();
+    }
+
+    /**
+     * Очередь без повтора дошла до конца естественным образом (через
+     * onCompletion) — MediaPlayer уже сам остановился и isPlaying() честно
+     * вернёт false, но уведомление/MediaSession/мини-плеер об этом ещё не
+     * знают, потому что playCurrent()/togglePlayPause() тут не вызываются.
+     * currentIndex и очередь не трогаем — последний трек остаётся
+     * выбранным и виден в мини-плеере, просто на паузе.
+     */
+    private void notifyStoppedAtQueueEnd() {
+        updateSessionPlaybackState(false);
+        Song song = getCurrentSong();
+        if (song != null) {
+            startForeground(NOTIFICATION_ID, buildNotification(song, false));
+        }
+        if (listener != null) listener.onPlaybackStateChanged(false);
     }
 
     public void previous() {

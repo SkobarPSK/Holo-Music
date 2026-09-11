@@ -192,24 +192,47 @@ public class MediaScanner {
      * файлов, не проходящих IS_MUSIC. Группировка по уже отфильтрованному
      * списку решает обе проблемы разом.
      */
+    // Разделители для "составных" тегов исполнителя: запятая, точка с
+    // запятой, амперсанд, "feat."/"ft."/"featuring" (без учёта регистра).
+    // \b вокруг feat/ft не даёт зацепить середину обычных слов вроде "Feathers".
+    private static final java.util.regex.Pattern ARTIST_SPLIT_PATTERN = java.util.regex.Pattern.compile(
+            "\\s*(?:,|;|&|\\bfeat\\.?\\b|\\bft\\.?\\b|\\bfeaturing\\b)\\s*",
+            java.util.regex.Pattern.CASE_INSENSITIVE);
+
+    /**
+     * Первый исполнитель из тега вида "Artist A, Artist B" или
+     * "Artist A feat. Artist B" — по договорённости для раздела Artists
+     * не пытаемся разобраться, кто тут "главный", просто берём первого
+     * по порядку, чтобы не плодить отдельную строку на каждую комбинацию.
+     */
+    public static String primaryArtistName(String rawArtist) {
+        if (rawArtist == null) return "";
+        String[] parts = ARTIST_SPLIT_PATTERN.split(rawArtist, 2);
+        return parts[0].trim();
+    }
+
     public static List<Artist> getArtistsFromSongs(List<Song> songs) {
-        java.util.LinkedHashMap<Long, Artist> byId = new java.util.LinkedHashMap<>();
-        java.util.Map<Long, java.util.Set<Long>> albumsByArtist = new java.util.HashMap<>();
+        java.util.LinkedHashMap<String, Artist> byName = new java.util.LinkedHashMap<>();
+        java.util.Map<String, java.util.Set<Long>> albumsByArtist = new java.util.HashMap<>();
 
         for (Song s : songs) {
-            Artist artist = byId.get(s.artistId);
+            String primaryName = primaryArtistName(s.artist);
+            String key = primaryName.toLowerCase(java.util.Locale.ROOT);
+            Artist artist = byName.get(key);
             if (artist == null) {
-                artist = new Artist(s.artistId, s.artist, 0, 0);
-                byId.put(s.artistId, artist);
-                albumsByArtist.put(s.artistId, new java.util.HashSet<Long>());
+                artist = new Artist(s.artistId, primaryName, 0, 0);
+                byName.put(key, artist);
+                albumsByArtist.put(key, new java.util.HashSet<Long>());
             }
             artist.songCount++;
-            albumsByArtist.get(s.artistId).add(s.albumId);
+            albumsByArtist.get(key).add(s.albumId);
         }
 
-        List<Artist> result = new ArrayList<>(byId.values());
-        for (Artist a : result) {
-            a.albumCount = albumsByArtist.get(a.id).size();
+        List<Artist> result = new ArrayList<>();
+        for (java.util.Map.Entry<String, Artist> entry : byName.entrySet()) {
+            Artist a = entry.getValue();
+            a.albumCount = albumsByArtist.get(entry.getKey()).size();
+            result.add(a);
         }
 
         java.util.Collections.sort(result, new java.util.Comparator<Artist>() {
@@ -220,6 +243,23 @@ public class MediaScanner {
                 return an.compareToIgnoreCase(bn);
             }
         });
+        return result;
+    }
+
+    /**
+     * Треки "объединённого" исполнителя из раздела Artists — совпадение
+     * идёт по primaryArtistName(), а не по artistId, потому что несколько
+     * разных MediaStore artist_id ("Artist A" и "Artist A, Artist B")
+     * теперь схлопнуты в одну строку и должны открываться вместе.
+     */
+    public static List<Song> getSongsForArtistName(Context context, String primaryName) {
+        List<Song> all = getAllSongs(context, SORT_ALBUM);
+        List<Song> result = new ArrayList<>();
+        for (Song s : all) {
+            if (primaryArtistName(s.artist).equalsIgnoreCase(primaryName)) {
+                result.add(s);
+            }
+        }
         return result;
     }
 

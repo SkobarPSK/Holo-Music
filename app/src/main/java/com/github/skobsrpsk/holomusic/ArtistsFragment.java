@@ -26,9 +26,13 @@ import java.util.List;
  * MediaStore.Audio.Artists — так список уважает ограничение по папкам
  * из настроек и не включает не-музыкальные "псевдо-исполнителей".
  */
-public class ArtistsFragment extends Fragment {
+public class ArtistsFragment extends Fragment implements NowPlayingAware {
 
     private final List<Artist> artists = new ArrayList<>();
+    // Кэш последнего загруженного списка треков — нужен, чтобы по id
+    // текущего трека найти его primaryArtistName() без повторного похода
+    // в MediaStore на каждую смену трека.
+    private final List<Song> loadedSongs = new ArrayList<>();
     private ArtistAdapter adapter;
     private TextView emptyText;
 
@@ -48,6 +52,7 @@ public class ArtistsFragment extends Fragment {
                 Intent intent = new Intent(getActivity(), TrackListActivity.class);
                 intent.putExtra(TrackListActivity.EXTRA_MODE, TrackListActivity.MODE_ARTIST);
                 intent.putExtra(TrackListActivity.EXTRA_ARTIST_ID, artist.id);
+                intent.putExtra(TrackListActivity.EXTRA_ARTIST_NAME, artist.name);
                 intent.putExtra(TrackListActivity.EXTRA_TITLE, artist.name);
                 startActivity(intent);
             }
@@ -63,6 +68,8 @@ public class ArtistsFragment extends Fragment {
             if (getActivity() == null) return new ArrayList<>();
             List<Song> songs = LibraryRepository.getSongs(getActivity(), MediaScanner.SORT_TITLE);
             songs = MediaScanner.filterByFolders(songs, SortPrefs.getLibraryFolders(getActivity()));
+            loadedSongs.clear();
+            loadedSongs.addAll(songs);
             return MediaScanner.getArtistsFromSongs(songs);
         }
 
@@ -73,6 +80,26 @@ public class ArtistsFragment extends Fragment {
             artists.addAll(result);
             adapter.notifyDataSetChanged();
             emptyText.setVisibility(artists.isEmpty() ? View.VISIBLE : View.GONE);
+            if (getActivity() instanceof BaseActivity) {
+                BaseActivity base = (BaseActivity) getActivity();
+                if (base.serviceBound) {
+                    Song current = base.playerService.getCurrentSong();
+                    onNowPlayingChanged(current != null ? current.id : -1);
+                }
+            }
         }
+    }
+
+    @Override
+    public void onNowPlayingChanged(long currentSongId) {
+        if (adapter == null) return;
+        String primaryName = null;
+        for (Song s : loadedSongs) {
+            if (s.id == currentSongId) {
+                primaryName = MediaScanner.primaryArtistName(s.artist);
+                break;
+            }
+        }
+        adapter.setCurrentlyPlayingName(primaryName);
     }
 }

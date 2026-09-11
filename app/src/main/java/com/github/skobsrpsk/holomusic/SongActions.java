@@ -92,10 +92,12 @@ public class SongActions {
     }
 
     static void goToArtist(Activity activity, Song song) {
+        String primaryName = com.github.skobsrpsk.holomusic.util.MediaScanner.primaryArtistName(song.artist);
         Intent intent = new Intent(activity, TrackListActivity.class);
         intent.putExtra(TrackListActivity.EXTRA_MODE, TrackListActivity.MODE_ARTIST);
         intent.putExtra(TrackListActivity.EXTRA_ARTIST_ID, song.artistId);
-        intent.putExtra(TrackListActivity.EXTRA_TITLE, song.artist);
+        intent.putExtra(TrackListActivity.EXTRA_ARTIST_NAME, primaryName);
+        intent.putExtra(TrackListActivity.EXTRA_TITLE, primaryName);
         activity.startActivity(intent);
     }
 

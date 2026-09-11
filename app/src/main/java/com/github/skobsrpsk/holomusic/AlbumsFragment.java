@@ -23,9 +23,10 @@ import java.util.List;
  * Альбомы строятся группировкой реальных отфильтрованных треков, а не
  * отдельной таблицей MediaStore.Audio.Albums (см. MediaScanner.getAlbumsFromSongs).
  */
-public class AlbumsFragment extends Fragment {
+public class AlbumsFragment extends Fragment implements NowPlayingAware {
 
     private final List<Album> albums = new ArrayList<>();
+    private final List<com.github.skobsrpsk.holomusic.model.Song> loadedSongs = new ArrayList<>();
     private AlbumAdapter adapter;
     private TextView emptyText;
 
@@ -60,6 +61,8 @@ public class AlbumsFragment extends Fragment {
             if (getActivity() == null) return new ArrayList<>();
             List<com.github.skobsrpsk.holomusic.model.Song> songs = LibraryRepository.getSongs(getActivity(), MediaScanner.SORT_TITLE);
             songs = MediaScanner.filterByFolders(songs, SortPrefs.getLibraryFolders(getActivity()));
+            loadedSongs.clear();
+            loadedSongs.addAll(songs);
             return MediaScanner.getAlbumsFromSongs(songs);
         }
 
@@ -70,6 +73,26 @@ public class AlbumsFragment extends Fragment {
             albums.addAll(result);
             adapter.notifyDataSetChanged();
             emptyText.setVisibility(albums.isEmpty() ? View.VISIBLE : View.GONE);
+            if (getActivity() instanceof BaseActivity) {
+                BaseActivity base = (BaseActivity) getActivity();
+                if (base.serviceBound) {
+                    com.github.skobsrpsk.holomusic.model.Song current = base.playerService.getCurrentSong();
+                    onNowPlayingChanged(current != null ? current.id : -1);
+                }
+            }
         }
+    }
+
+    @Override
+    public void onNowPlayingChanged(long currentSongId) {
+        if (adapter == null) return;
+        long albumId = -1;
+        for (com.github.skobsrpsk.holomusic.model.Song s : loadedSongs) {
+            if (s.id == currentSongId) {
+                albumId = s.albumId;
+                break;
+            }
+        }
+        adapter.setCurrentlyPlayingAlbumId(albumId);
     }
 }

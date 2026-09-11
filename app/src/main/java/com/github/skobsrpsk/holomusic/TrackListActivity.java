@@ -24,6 +24,7 @@ public class TrackListActivity extends BaseActivity {
     public static final String EXTRA_MODE = "mode";
     public static final String EXTRA_ALBUM_ID = "album_id";
     public static final String EXTRA_ARTIST_ID = "artist_id";
+    public static final String EXTRA_ARTIST_NAME = "artist_name";
     public static final String EXTRA_TITLE = "title";
 
     public static final int MODE_ALBUM = 0;
@@ -128,8 +129,8 @@ public class TrackListActivity extends BaseActivity {
                 long albumId = getIntent().getLongExtra(EXTRA_ALBUM_ID, -1);
                 result = MediaScanner.getSongsForAlbum(TrackListActivity.this, albumId);
             } else {
-                long artistId = getIntent().getLongExtra(EXTRA_ARTIST_ID, -1);
-                result = MediaScanner.getSongsForArtist(TrackListActivity.this, artistId);
+                String artistName = getIntent().getStringExtra(EXTRA_ARTIST_NAME);
+                result = MediaScanner.getSongsForArtistName(TrackListActivity.this, artistName);
             }
             // Та же папка-фильтрация, что и в "Все треки"/"Альбомы"/"Исполнители" —
             // иначе тут вылезали бы треки вне выбранных папок, хотя списки

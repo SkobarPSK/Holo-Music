@@ -23,7 +23,7 @@ import java.util.List;
  * через MediaMetadataRetriever может занять заметное время на большой
  * библиотеке, поэтому UI-поток не блокируем.
  */
-public class MusicsFragment extends Fragment implements NowPlayingAware {
+public class MusicsFragment extends Fragment implements NowPlayingAware, Searchable {
 
     private ListView listView;
     private TextView emptyText;
@@ -87,16 +87,19 @@ public class MusicsFragment extends Fragment implements NowPlayingAware {
     }
 
     /** Простой локальный фильтр по названию/артисту/альбому для SearchView. */
+    @Override
     public void filter(String query) {
         songs.clear();
         if (query == null || query.trim().isEmpty()) {
             songs.addAll(allSongs);
         } else {
+            // Ищем только по названию трека — это то, что показано крупным
+            // шрифтом в строке списка. Раньше искало ещё и по исполнителю/
+            // альбому одновременно, из-за чего результаты было сложно
+            // предсказать.
             String q = query.toLowerCase();
             for (Song s : allSongs) {
-                if ((s.title != null && s.title.toLowerCase().contains(q))
-                        || (s.artist != null && s.artist.toLowerCase().contains(q))
-                        || (s.album != null && s.album.toLowerCase().contains(q))) {
+                if (s.title != null && s.title.toLowerCase().contains(q)) {
                     songs.add(s);
                 }
             }

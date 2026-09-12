@@ -111,6 +111,14 @@ public class MainActivity extends BaseActivity {
         currentSection = section;
         drawerAdapter.setSelected(section);
 
+        // Иначе при переключении раздела через боковое меню строка поиска
+        // могла остаться с введённым текстом, а новый раздел показывал бы
+        // полный нефильтрованный список — расхождение между тем, что видно
+        // в поле поиска, и тем, что реально отображено.
+        if (searchMenuItem != null && searchMenuItem.isActionViewExpanded()) {
+            searchMenuItem.collapseActionView();
+        }
+
         Fragment fragment;
         switch (section) {
             case PLAYLISTS:
@@ -253,8 +261,8 @@ public class MainActivity extends BaseActivity {
                 @Override
                 public boolean onQueryTextChange(String newText) {
                     Fragment frag = getFragmentManager().findFragmentById(R.id.main_content_frame);
-                    if (frag instanceof MusicsFragment) {
-                        ((MusicsFragment) frag).filter(newText);
+                    if (frag instanceof Searchable) {
+                        ((Searchable) frag).filter(newText);
                     }
                     return true;
                 }

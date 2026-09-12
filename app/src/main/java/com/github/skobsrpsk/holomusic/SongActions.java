@@ -274,7 +274,7 @@ public class SongActions {
         }
 
         String bitrate = estimateBitrate(fileSizeBytes, song.duration, activity);
-        String size = formatFileSize(fileSizeBytes);
+        String size = formatFileSize(fileSizeBytes, activity);
 
         String message = activity.getString(R.string.song_info_format,
                 song.title, song.artist, song.album, duration, bitrate, size, song.path);
@@ -301,14 +301,14 @@ public class SongActions {
         return activity.getString(R.string.bitrate_format, kbps);
     }
 
-    private static String formatFileSize(long bytes) {
+    private static String formatFileSize(long bytes, Activity activity) {
         if (bytes <= 0) return "—";
         double mb = bytes / (1024.0 * 1024.0);
         if (mb >= 1.0) {
-            return String.format(Locale.getDefault(), "%.1f МБ", mb);
+            return activity.getString(R.string.file_size_mb, mb);
         }
         double kb = bytes / 1024.0;
-        return String.format(Locale.getDefault(), "%.0f КБ", kb);
+        return activity.getString(R.string.file_size_kb, kb);
     }
 
     static void setAsRingtone(final Activity activity, final Song song) {

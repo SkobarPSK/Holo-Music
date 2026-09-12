@@ -34,6 +34,12 @@ import java.util.List;
  */
 public class FolderBrowserActivity extends Activity {
 
+    @Override
+    protected void attachBaseContext(android.content.Context newBase) {
+        super.attachBaseContext(com.github.skobsrpsk.holomusic.util.LocaleHelper.wrap(newBase));
+    }
+
+
     public static final String EXTRA_SELECTED_PATH = "selected_path";
 
     private File currentDir;

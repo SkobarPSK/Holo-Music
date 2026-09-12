@@ -31,6 +31,12 @@ import java.util.Locale;
 
 public class NowPlayingActivity extends Activity implements PlaybackListener {
 
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        super.attachBaseContext(com.github.skobsrpsk.holomusic.util.LocaleHelper.wrap(newBase));
+    }
+
+
     public static void start(Context context) {
         Intent intent = new Intent(context, NowPlayingActivity.class);
         context.startActivity(intent);

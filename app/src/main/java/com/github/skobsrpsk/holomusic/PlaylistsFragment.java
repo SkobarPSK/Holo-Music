@@ -21,9 +21,12 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.List;
 
-public class PlaylistsFragment extends Fragment {
+public class PlaylistsFragment extends Fragment implements Searchable {
 
     private final List<String> playlistNames = new ArrayList<>();
+    // Полный список — filter() режет из него в playlistNames (который держит adapter).
+    private final List<String> allPlaylistNames = new ArrayList<>();
+    private String currentQuery = "";
     private ArrayAdapter<String> adapter;
     private TextView emptyText;
 
@@ -118,9 +121,30 @@ public class PlaylistsFragment extends Fragment {
 
     public void reload() {
         if (getActivity() == null) return;
+        allPlaylistNames.clear();
+        allPlaylistNames.addAll(PlaylistStore.getPlaylistNames(getActivity()));
+        applyFilter();
+    }
+
+    @Override
+    public void filter(String query) {
+        currentQuery = query == null ? "" : query;
+        applyFilter();
+    }
+
+    private void applyFilter() {
         playlistNames.clear();
-        playlistNames.addAll(PlaylistStore.getPlaylistNames(getActivity()));
-        adapter.notifyDataSetChanged();
-        emptyText.setVisibility(playlistNames.isEmpty() ? View.VISIBLE : View.GONE);
+        if (currentQuery.trim().isEmpty()) {
+            playlistNames.addAll(allPlaylistNames);
+        } else {
+            String q = currentQuery.toLowerCase();
+            for (String name : allPlaylistNames) {
+                if (name.toLowerCase().contains(q)) {
+                    playlistNames.add(name);
+                }
+            }
+        }
+        if (adapter != null) adapter.notifyDataSetChanged();
+        if (emptyText != null) emptyText.setVisibility(playlistNames.isEmpty() ? View.VISIBLE : View.GONE);
     }
 }

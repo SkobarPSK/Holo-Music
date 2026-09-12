@@ -35,6 +35,12 @@ import java.util.List;
  */
 public class SettingsEqualizerActivity extends Activity implements PlaybackListener {
 
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        super.attachBaseContext(com.github.skobsrpsk.holomusic.util.LocaleHelper.wrap(newBase));
+    }
+
+
     private PlayerService playerService;
     private boolean serviceBound = false;
     private boolean activityStarted = false;
@@ -222,7 +228,7 @@ public class SettingsEqualizerActivity extends Activity implements PlaybackListe
             SeekBar seekBar = row.findViewById(R.id.seek_band);
 
             int freqHz = playerService.getBandFrequencyHz(i);
-            freqText.setText(freqHz >= 1000 ? (freqHz / 1000) + "к" : String.valueOf(freqHz));
+            freqText.setText(freqHz >= 1000 ? (freqHz / 1000) + getString(R.string.freq_khz_suffix) : String.valueOf(freqHz));
 
             int span = range[1] - range[0];
             seekBar.setMax(span);

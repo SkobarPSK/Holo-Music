@@ -26,9 +26,12 @@ import java.util.List;
  * MediaStore.Audio.Artists — так список уважает ограничение по папкам
  * из настроек и не включает не-музыкальные "псевдо-исполнителей".
  */
-public class ArtistsFragment extends Fragment implements NowPlayingAware {
+public class ArtistsFragment extends Fragment implements NowPlayingAware, Searchable {
 
     private final List<Artist> artists = new ArrayList<>();
+    // Полный список — filter() режет из него в artists (который держит adapter).
+    private final List<Artist> allArtists = new ArrayList<>();
+    private String currentQuery = "";
     // Кэш последнего загруженного списка треков — нужен, чтобы по id
     // текущего трека найти его primaryArtistName() без повторного похода
     // в MediaStore на каждую смену трека.
@@ -76,10 +79,9 @@ public class ArtistsFragment extends Fragment implements NowPlayingAware {
         @Override
         protected void onPostExecute(List<Artist> result) {
             if (getActivity() == null) return;
-            artists.clear();
-            artists.addAll(result);
-            adapter.notifyDataSetChanged();
-            emptyText.setVisibility(artists.isEmpty() ? View.VISIBLE : View.GONE);
+            allArtists.clear();
+            allArtists.addAll(result);
+            applyFilter();
             if (getActivity() instanceof BaseActivity) {
                 BaseActivity base = (BaseActivity) getActivity();
                 if (base.serviceBound) {
@@ -88,6 +90,30 @@ public class ArtistsFragment extends Fragment implements NowPlayingAware {
                 }
             }
         }
+    }
+
+    @Override
+    public void filter(String query) {
+        currentQuery = query == null ? "" : query;
+        applyFilter();
+    }
+
+    private void applyFilter() {
+        artists.clear();
+        if (currentQuery.trim().isEmpty()) {
+            artists.addAll(allArtists);
+        } else {
+            // Ищем только по имени исполнителя — это то, что показано
+            // крупным шрифтом в строке списка этого раздела.
+            String q = currentQuery.toLowerCase();
+            for (Artist a : allArtists) {
+                if (a.name != null && a.name.toLowerCase().contains(q)) {
+                    artists.add(a);
+                }
+            }
+        }
+        if (adapter != null) adapter.notifyDataSetChanged();
+        if (emptyText != null) emptyText.setVisibility(artists.isEmpty() ? View.VISIBLE : View.GONE);
     }
 
     @Override

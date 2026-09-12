@@ -72,6 +72,11 @@
             android:screenOrientation="portrait" />
 
         <activity
+            android:name=".LegalDocumentActivity"
+            android:parentActivityName=".SettingsAboutActivity"
+            android:screenOrientation="portrait" />
+
+        <activity
             android:name=".FolderBrowserActivity"
             android:label="@string/add_folder"
             android:parentActivityName=".SettingsLibraryActivity"

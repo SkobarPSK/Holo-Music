@@ -51,7 +51,7 @@ public class ArtistAdapter extends ArrayAdapter<Artist> {
         Artist artist = getItem(position);
         if (artist != null) {
             holder.title.setText(artist.name);
-            holder.subtitle.setText(artist.albumCount + " альбомов • " + artist.songCount + " треков");
+            holder.subtitle.setText(getContext().getString(R.string.artist_subtitle_format, artist.albumCount, artist.songCount));
 
             boolean isPlaying = currentlyPlayingName != null && artist.name != null
                     && currentlyPlayingName.equals(artist.name.toLowerCase(Locale.ROOT));

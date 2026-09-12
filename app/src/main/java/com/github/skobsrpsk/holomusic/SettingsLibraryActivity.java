@@ -21,6 +21,12 @@ import java.util.Set;
 /** Настройки — раздел "Библиотека": папки, пересканирование, фильтры сканирования. */
 public class SettingsLibraryActivity extends Activity {
 
+    @Override
+    protected void attachBaseContext(android.content.Context newBase) {
+        super.attachBaseContext(com.github.skobsrpsk.holomusic.util.LocaleHelper.wrap(newBase));
+    }
+
+
     private static final int REQUEST_PICK_FOLDER = 200;
     private static final String[] SCAN_EXTENSIONS = {"mp3", "flac", "ogg", "m4a", "aac", "wav", "wma", "opus"};
 

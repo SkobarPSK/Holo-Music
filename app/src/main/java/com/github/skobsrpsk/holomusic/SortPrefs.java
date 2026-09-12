@@ -19,6 +19,23 @@ public class SortPrefs {
     private static final String KEY_FAVORITES = "favorites"; // строка вида ";id1;id2;id3;"
     private static final String KEY_FOLDERS = "library_folders"; // строка вида "|/path/one|/path/two|"
     private static final String KEY_FIRST_RUN_DONE = "first_run_done";
+    private static final String KEY_LANGUAGE = "language"; // "" = системный, иначе код языка ("ru", "en", ...)
+
+    /**
+     * Поддерживаемые языки ручного переключения — единственное место,
+     * которое нужно расширить при добавлении нового языка (плюс сам
+     * values-xx/strings.xml с переводом).
+     */
+    public static final String[] SUPPORTED_LANGUAGES = {"ru", "en"};
+
+    /** "" означает "системный" — используем локаль устройства как есть. */
+    public static String getLanguage(Context context) {
+        return prefs(context).getString(KEY_LANGUAGE, "");
+    }
+
+    public static void setLanguage(Context context, String languageCode) {
+        prefs(context).edit().putString(KEY_LANGUAGE, languageCode == null ? "" : languageCode).apply();
+    }
 
     public static boolean isFirstRun(Context context) {
         return !prefs(context).getBoolean(KEY_FIRST_RUN_DONE, false);

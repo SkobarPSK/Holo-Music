@@ -193,10 +193,13 @@ public class MediaScanner {
      * списку решает обе проблемы разом.
      */
     // Разделители для "составных" тегов исполнителя: запятая, точка с
-    // запятой, амперсанд, "feat."/"ft."/"featuring" (без учёта регистра).
+    // запятой, "feat."/"ft."/"featuring" (без учёта регистра). Амперсанд
+    // намеренно НЕ разделитель — он часто часть настоящего имени дуэта/
+    // группы ("Simon & Garfunkel", "Hall & Oates"), а не признака "тут
+    // несколько исполнителей через тег", в отличие от запятой и feat./ft.
     // \b вокруг feat/ft не даёт зацепить середину обычных слов вроде "Feathers".
     private static final java.util.regex.Pattern ARTIST_SPLIT_PATTERN = java.util.regex.Pattern.compile(
-            "\\s*(?:,|;|&|\\bfeat\\.?\\b|\\bft\\.?\\b|\\bfeaturing\\b)\\s*",
+            "\\s*(?:,|;|\\bfeat\\.?\\b|\\bft\\.?\\b|\\bfeaturing\\b)\\s*",
             java.util.regex.Pattern.CASE_INSENSITIVE);
 
     /**

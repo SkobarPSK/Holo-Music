@@ -73,7 +73,12 @@ public class Mp3TagIO {
                     int bodyOffset = 0;
                     boolean hasExtendedHeader = (flags & 0x40) != 0 && majorVersion >= 3;
                     if (hasExtendedHeader && body.length >= 4) {
-                        long extSize = (majorVersion >= 4) ? synchsafeToInt(body, 0) : readUInt32(body, 0);
+                        // В ID3v2.3 поле "extended header size" НЕ включает
+                        // само себя (4 байта) — нужно прибавить их отдельно.
+                        // В ID3v2.4 оно synchsafe и уже включает себя.
+                        long extSize = (majorVersion >= 4)
+                                ? synchsafeToInt(body, 0)
+                                : 4L + readUInt32(body, 0);
                         bodyOffset = (int) Math.min(extSize, body.length);
                     }
                     parseId3v2Frames(body, bodyOffset, majorVersion, tags);
@@ -280,8 +285,20 @@ public class Mp3TagIO {
                 if (out != null) out.close();
             }
 
-            if (!file.delete()) return false;
-            return tempFile.renameTo(file);
+            // Раньше здесь сначала удалялся оригинал (file.delete()), а
+            // потом делался renameTo() — если rename после этого почему-то
+            // не срабатывал (бывает на отдельных точках монтирования),
+            // получалось, что оригинал уже удалён, а новый файл остаётся
+            // только во временном — и finally ниже его же и подчищал,
+            // теряя трек целиком. renameTo() на Android/Linux сам умеет
+            // атомарно заменить существующий файл-цель, поэтому удалять
+            // заранее не нужно вовсе; а если он всё же откажет — копируем
+            // байты поверх оригинала вручную, не трогая его, пока не
+            // убедимся, что временный файл записан целиком.
+            if (tempFile.renameTo(file)) {
+                return true;
+            }
+            return copyFileContents(tempFile, file);
         } catch (IOException e) {
             return false;
         } finally {
@@ -292,7 +309,34 @@ public class Mp3TagIO {
                 }
             }
             if (tempFile != null && tempFile.exists()) {
-                tempFile.delete(); // остался только если что-то пошло не так до renameTo
+                tempFile.delete(); // остался только если rename выше не сработал
+            }
+        }
+    }
+
+    /** Копирует содержимое src поверх dst, не удаляя dst заранее — резервный путь, если renameTo() отказал. */
+    private static boolean copyFileContents(File src, File dst) {
+        InputStream in = null;
+        OutputStream out = null;
+        try {
+            in = new FileInputStream(src);
+            out = new FileOutputStream(dst); // усечёт и перезапишет dst, сам dst как файл не удаляется
+            byte[] buf = new byte[8192];
+            int read;
+            while ((read = in.read(buf)) >= 0) {
+                out.write(buf, 0, read);
+            }
+            return true;
+        } catch (IOException e) {
+            return false;
+        } finally {
+            try {
+                if (in != null) in.close();
+            } catch (IOException ignored) {
+            }
+            try {
+                if (out != null) out.close();
+            } catch (IOException ignored) {
             }
         }
     }

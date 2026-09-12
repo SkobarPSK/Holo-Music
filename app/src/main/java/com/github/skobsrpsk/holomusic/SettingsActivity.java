@@ -20,6 +20,12 @@ import android.widget.TextView;
 public class SettingsActivity extends Activity {
 
     @Override
+    protected void attachBaseContext(android.content.Context newBase) {
+        super.attachBaseContext(com.github.skobsrpsk.holomusic.util.LocaleHelper.wrap(newBase));
+    }
+
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings_categories);

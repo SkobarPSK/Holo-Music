@@ -48,7 +48,7 @@ public class AlbumAdapter extends ArrayAdapter<Album> {
         Album album = getItem(position);
         if (album != null) {
             holder.title.setText(album.name);
-            holder.subtitle.setText(album.artist + " • " + album.songCount + " треков");
+            holder.subtitle.setText(getContext().getString(R.string.album_subtitle_format, album.artist, album.songCount));
 
             boolean isPlaying = album.id == currentlyPlayingAlbumId;
             holder.marker.setVisibility(isPlaying ? View.VISIBLE : View.INVISIBLE);

@@ -46,6 +46,12 @@ import java.util.List;
  */
 public class PlayerService extends Service {
 
+    @Override
+    protected void attachBaseContext(android.content.Context newBase) {
+        super.attachBaseContext(com.github.skobsrpsk.holomusic.util.LocaleHelper.wrap(newBase));
+    }
+
+
     public static final String ACTION_TOGGLE_PLAY = "com.github.skobsrpsk.holomusic.TOGGLE_PLAY";
     public static final String ACTION_NEXT = "com.github.skobsrpsk.holomusic.NEXT";
     public static final String ACTION_PREVIOUS = "com.github.skobsrpsk.holomusic.PREVIOUS";
@@ -947,7 +953,7 @@ public class PlayerService extends Service {
             NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
             if (nm != null && nm.getNotificationChannel(CHANNEL_ID) == null) {
                 NotificationChannel channel = new NotificationChannel(
-                        CHANNEL_ID, "Воспроизведение музыки", NotificationManager.IMPORTANCE_LOW);
+                        CHANNEL_ID, getString(R.string.notification_channel_playback), NotificationManager.IMPORTANCE_LOW);
                 channel.setShowBadge(false);
                 nm.createNotificationChannel(channel);
             }

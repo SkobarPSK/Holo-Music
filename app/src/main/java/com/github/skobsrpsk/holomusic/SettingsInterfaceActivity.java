@@ -3,6 +3,7 @@ package com.github.skobsrpsk.holomusic;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -22,6 +23,12 @@ import java.util.Set;
 /** Настройки — раздел "Интерфейс": экран по умолчанию, боковое меню, сортировка, миниатюры. */
 public class SettingsInterfaceActivity extends Activity {
 
+    @Override
+    protected void attachBaseContext(android.content.Context newBase) {
+        super.attachBaseContext(com.github.skobsrpsk.holomusic.util.LocaleHelper.wrap(newBase));
+    }
+
+
     private LinearLayout drawerSettingsContainer;
     private TextView defaultScreenText;
     private List<DrawerSection> order;
@@ -36,10 +43,98 @@ public class SettingsInterfaceActivity extends Activity {
             getActionBar().setTitle(R.string.settings_category_interface);
         }
 
+        setupLanguageSection();
         setupDefaultScreenSection();
         setupDrawerSection();
         setupSortSection();
         setupThumbnailsSection();
+    }
+
+    // ---------- Язык ----------
+
+    private void setupLanguageSection() {
+        final TextView languageText = findViewById(R.id.text_language);
+        refreshLanguageText(languageText);
+
+        languageText.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // "Системный" первым пунктом, дальше — поддерживаемые
+                // языки в порядке SortPrefs.SUPPORTED_LANGUAGES (единственное
+                // место, которое нужно расширить при добавлении языка).
+                final String[] codes = new String[SortPrefs.SUPPORTED_LANGUAGES.length + 1];
+                CharSequence[] labels = new CharSequence[codes.length];
+                codes[0] = "";
+                labels[0] = getString(R.string.language_system);
+                for (int i = 0; i < SortPrefs.SUPPORTED_LANGUAGES.length; i++) {
+                    codes[i + 1] = SortPrefs.SUPPORTED_LANGUAGES[i];
+                    labels[i + 1] = languageDisplayName(SortPrefs.SUPPORTED_LANGUAGES[i]);
+                }
+
+                new AlertDialog.Builder(SettingsInterfaceActivity.this)
+                        .setTitle(R.string.language_setting_title)
+                        .setItems(labels, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                String chosen = codes[which];
+                                if (chosen.equals(SortPrefs.getLanguage(SettingsInterfaceActivity.this))) {
+                                    return; // тот же язык — перезапуск не нужен
+                                }
+                                confirmLanguageChange(chosen);
+                            }
+                        })
+                        .show();
+            }
+        });
+    }
+
+    private void confirmLanguageChange(final String languageCode) {
+        new AlertDialog.Builder(this)
+                .setMessage(R.string.language_change_restart_message)
+                .setPositiveButton(R.string.restart, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        SortPrefs.setLanguage(SettingsInterfaceActivity.this, languageCode);
+                        restartApp();
+                    }
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    /**
+     * Полный перезапуск процесса — самый надёжный способ гарантированно
+     * применить новый язык сразу везде, включая уже запущенный
+     * PlayerService (его уведомление/канал иначе остались бы на старом
+     * языке до следующего пересоздания). Если что-то играет — воспроизведение
+     * прервётся; пользователь уже предупреждён диалогом выше.
+     */
+    private void restartApp() {
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        android.os.Process.killProcess(android.os.Process.myPid());
+    }
+
+    private void refreshLanguageText(TextView languageText) {
+        String code = SortPrefs.getLanguage(this);
+        languageText.setText(code.isEmpty() ? getString(R.string.language_system) : languageDisplayName(code));
+    }
+
+    /**
+     * Названия языков традиционно показываются на самих себе ("Русский",
+     * "English"), а не переводятся вместе с языком интерфейса — поэтому
+     * это литералы в коде, а не строковый ресурс.
+     */
+    private static CharSequence languageDisplayName(String code) {
+        switch (code) {
+            case "ru":
+                return "Русский";
+            case "en":
+                return "English";
+            default:
+                return code;
+        }
     }
 
     // ---------- Экран по умолчанию ----------

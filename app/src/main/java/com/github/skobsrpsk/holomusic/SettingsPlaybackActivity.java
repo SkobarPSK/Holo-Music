@@ -15,6 +15,12 @@ import android.widget.TextView;
 /** Настройки — раздел "Воспроизведение": обложка на блокировке, оптимизация батареи. */
 public class SettingsPlaybackActivity extends Activity {
 
+    @Override
+    protected void attachBaseContext(android.content.Context newBase) {
+        super.attachBaseContext(com.github.skobsrpsk.holomusic.util.LocaleHelper.wrap(newBase));
+    }
+
+
     private TextView batteryButton;
 
     @Override

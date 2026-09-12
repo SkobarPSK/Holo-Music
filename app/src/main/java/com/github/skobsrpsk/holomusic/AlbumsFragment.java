@@ -23,9 +23,12 @@ import java.util.List;
  * Альбомы строятся группировкой реальных отфильтрованных треков, а не
  * отдельной таблицей MediaStore.Audio.Albums (см. MediaScanner.getAlbumsFromSongs).
  */
-public class AlbumsFragment extends Fragment implements NowPlayingAware {
+public class AlbumsFragment extends Fragment implements NowPlayingAware, Searchable {
 
     private final List<Album> albums = new ArrayList<>();
+    // Полный список — filter() режет из него в albums (который держит adapter).
+    private final List<Album> allAlbums = new ArrayList<>();
+    private String currentQuery = "";
     private final List<com.github.skobsrpsk.holomusic.model.Song> loadedSongs = new ArrayList<>();
     private AlbumAdapter adapter;
     private TextView emptyText;
@@ -69,10 +72,9 @@ public class AlbumsFragment extends Fragment implements NowPlayingAware {
         @Override
         protected void onPostExecute(List<Album> result) {
             if (getActivity() == null) return;
-            albums.clear();
-            albums.addAll(result);
-            adapter.notifyDataSetChanged();
-            emptyText.setVisibility(albums.isEmpty() ? View.VISIBLE : View.GONE);
+            allAlbums.clear();
+            allAlbums.addAll(result);
+            applyFilter();
             if (getActivity() instanceof BaseActivity) {
                 BaseActivity base = (BaseActivity) getActivity();
                 if (base.serviceBound) {
@@ -81,6 +83,30 @@ public class AlbumsFragment extends Fragment implements NowPlayingAware {
                 }
             }
         }
+    }
+
+    @Override
+    public void filter(String query) {
+        currentQuery = query == null ? "" : query;
+        applyFilter();
+    }
+
+    private void applyFilter() {
+        albums.clear();
+        if (currentQuery.trim().isEmpty()) {
+            albums.addAll(allAlbums);
+        } else {
+            // Ищем только по названию альбома — то, что показано крупным
+            // шрифтом в строке списка этого раздела (не по исполнителю).
+            String q = currentQuery.toLowerCase();
+            for (Album a : allAlbums) {
+                if (a.name != null && a.name.toLowerCase().contains(q)) {
+                    albums.add(a);
+                }
+            }
+        }
+        if (adapter != null) adapter.notifyDataSetChanged();
+        if (emptyText != null) emptyText.setVisibility(albums.isEmpty() ? View.VISIBLE : View.GONE);
     }
 
     @Override

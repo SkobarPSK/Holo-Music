@@ -29,4 +29,47 @@
         android:textColor="@color/text_secondary"
         android:textSize="13sp" />
 
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/divider_grey"
+        android:layout_marginTop="20dp"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:id="@+id/text_github_link"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="10dp"
+        android:text="@string/github_link_label"
+        android:textColor="@color/holo_blue"
+        android:textSize="14sp"
+        android:background="@drawable/list_selector_holo"
+        android:clickable="true"
+        android:focusable="true" />
+
+    <TextView
+        android:id="@+id/text_terms_of_use"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="10dp"
+        android:text="@string/terms_of_use"
+        android:textColor="@color/text_primary"
+        android:textSize="14sp"
+        android:background="@drawable/list_selector_holo"
+        android:clickable="true"
+        android:focusable="true" />
+
+    <TextView
+        android:id="@+id/text_privacy_policy"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="10dp"
+        android:text="@string/privacy_policy"
+        android:textColor="@color/text_primary"
+        android:textSize="14sp"
+        android:background="@drawable/list_selector_holo"
+        android:clickable="true"
+        android:focusable="true" />
+
 </LinearLayout>

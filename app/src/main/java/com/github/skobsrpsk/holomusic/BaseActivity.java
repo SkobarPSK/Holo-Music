@@ -38,6 +38,11 @@ public abstract class BaseActivity extends Activity implements PlaybackListener 
     private boolean hasCurrentSong = false;
     private boolean hiddenByDrawer = false;
 
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        super.attachBaseContext(com.github.skobsrpsk.holomusic.util.LocaleHelper.wrap(newBase));
+    }
+
     protected PlayerService playerService;
     protected boolean serviceBound = false;
     private boolean activityStarted = false;

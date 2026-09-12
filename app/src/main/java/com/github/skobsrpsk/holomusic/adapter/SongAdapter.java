@@ -46,6 +46,7 @@ public class SongAdapter extends ArrayAdapter<Song> {
             holder.title = convertView.findViewById(R.id.text_title);
             holder.subtitle = convertView.findViewById(R.id.text_subtitle);
             holder.favorite = convertView.findViewById(R.id.text_favorite);
+            holder.broken = convertView.findViewById(R.id.text_broken_marker);
             convertView.setTag(holder);
         } else {
             holder = (ViewHolder) convertView.getTag();
@@ -56,6 +57,7 @@ public class SongAdapter extends ArrayAdapter<Song> {
             holder.title.setText(song.title);
             holder.subtitle.setText(song.artist + " — " + song.album);
             holder.favorite.setText(song.favorite ? "\u2605" : "");
+            holder.broken.setVisibility(song.isBroken ? View.VISIBLE : View.GONE);
 
             boolean isPlaying = song.id == currentlyPlayingId;
             holder.marker.setVisibility(isPlaying ? View.VISIBLE : View.INVISIBLE);
@@ -79,5 +81,6 @@ public class SongAdapter extends ArrayAdapter<Song> {
         TextView title;
         TextView subtitle;
         TextView favorite;
+        TextView broken;
     }
 }

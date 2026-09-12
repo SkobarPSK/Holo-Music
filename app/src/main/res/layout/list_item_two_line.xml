@@ -55,6 +55,16 @@
     </LinearLayout>
 
     <TextView
+        android:id="@+id/text_broken_marker"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="8dp"
+        android:textColor="@color/warning_orange"
+        android:textSize="16sp"
+        android:text="&#9888;"
+        android:visibility="gone" />
+
+    <TextView
         android:id="@+id/text_favorite"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

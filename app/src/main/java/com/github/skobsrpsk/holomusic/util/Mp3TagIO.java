@@ -250,7 +250,14 @@ public class Mp3TagIO {
             probe = new RandomAccessFile(file, "r");
             byte[] header = new byte[10];
             if (probe.read(header) == 10 && header[0] == 'I' && header[1] == 'D' && header[2] == '3') {
+                int majorVersion = header[3] & 0xFF;
+                int flags = header[5] & 0xFF;
                 oldId3v2Size = 10L + synchsafeToInt(header, 6);
+                // ID3v2.4 может иметь необязательный 10-байтовый footer в
+                // конце тега (флаг 0x10) — размер в заголовке его не
+                // учитывает, значение нужно скорректировать отдельно.
+                boolean hasFooter = majorVersion >= 4 && (flags & 0x10) != 0;
+                if (hasFooter) oldId3v2Size += 10;
             }
 
             boolean hasOldId3v1 = false;
@@ -260,12 +267,42 @@ public class Mp3TagIO {
                 probe.readFully(tail);
                 hasOldId3v1 = tail[0] == 'T' && tail[1] == 'A' && tail[2] == 'G';
             }
-            probe.close();
-            probe = null;
 
             long audioStart = Math.min(oldId3v2Size, oldLen);
             long audioEnd = hasOldId3v1 ? oldLen - 128 : oldLen;
             if (audioEnd < audioStart) audioEnd = audioStart;
+            long audioBytes = audioEnd - audioStart;
+
+            // Защита от катастрофы: то, что мы считаем "началом аудио",
+            // должно реально быть началом MP3-фрейма (0xFF, а у следующего
+            // байта — три старших бита установлены; стандартная сигнатура
+            // синхронизации MPEG, под неё попадают и Xing/LAME VBR-заголовки
+            // — это обычные фреймы со служебными данными внутри). Если
+            // сигнатуры нет — где-то в разборе тега мы промахнулись мимо
+            // реального начала аудио, и продолжать не стоит — лучше
+            // отказаться, чем испортить файл.
+            //
+            // Раньше здесь ещё была проверка по соотношению размеров
+            // (аудио должно быть не меньше половины файла) — убрал: она
+            // менее точная и вдобавок могла ложно блокировать абсолютно
+            // нормальные короткие треки с большой встроенной обложкой
+            // (сам тег в таком файле законно может быть больше половины
+            // размера). Эта проверка ниже точнее — смотрит на факт, а не
+            // на пропорцию — и не имеет такого риска ложных срабатываний.
+            if (audioBytes >= 2 && audioStart + 2 <= oldLen) {
+                byte[] syncCheck = new byte[2];
+                probe.seek(audioStart);
+                probe.readFully(syncCheck);
+                boolean looksLikeMpegFrame = (syncCheck[0] & 0xFF) == 0xFF && (syncCheck[1] & 0xE0) == 0xE0;
+                if (!looksLikeMpegFrame) {
+                    probe.close();
+                    probe = null;
+                    return false;
+                }
+            }
+
+            probe.close();
+            probe = null;
 
             byte[] newId3v2 = buildId3v2Tag(tags);
             byte[] newId3v1 = buildId3v1Tag(tags);
@@ -511,7 +548,7 @@ public class Mp3TagIO {
         return -1;
     }
 
-    private static int synchsafeToInt(byte[] data, int offset) {
+    static int synchsafeToInt(byte[] data, int offset) {
         return ((data[offset] & 0x7F) << 21) | ((data[offset + 1] & 0x7F) << 14)
                 | ((data[offset + 2] & 0x7F) << 7) | (data[offset + 3] & 0x7F);
     }

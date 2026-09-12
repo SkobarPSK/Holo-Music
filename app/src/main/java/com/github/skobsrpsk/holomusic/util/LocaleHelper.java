@@ -24,7 +24,7 @@ public class LocaleHelper {
             return context; // системный — ничего не форсируем, пусть решает сама Android
         }
 
-        Locale locale = new Locale(languageCode);
+        Locale locale = parseLocale(languageCode);
         Configuration config = new Configuration(context.getResources().getConfiguration());
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
             config.setLocale(locale);
@@ -40,5 +40,18 @@ public class LocaleHelper {
             context.getResources().updateConfiguration(config, context.getResources().getDisplayMetrics());
             return context;
         }
+    }
+
+    /**
+     * "ru" -> Locale("ru"); "pt-BR" -> Locale("pt", "BR") — нужно для
+     * бразильского португальского, иначе он резолвился бы в обычный
+     * "pt" и не попадал бы в values-pt-rBR.
+     */
+    private static Locale parseLocale(String code) {
+        int dash = code.indexOf('-');
+        if (dash > 0) {
+            return new Locale(code.substring(0, dash), code.substring(dash + 1));
+        }
+        return new Locale(code);
     }
 }

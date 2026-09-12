@@ -14,6 +14,10 @@ public class Song {
     public String path;
     public long duration; // в миллисекундах
     public boolean favorite;
+    // Грубая эвристика при сканировании (см. MediaScanner.isLikelyBroken) —
+    // помечает файлы, которые вероятно не проиграются (оборванные закачки
+    // и т.п.), чтобы показать предупреждение в списке.
+    public boolean isBroken;
 
     public Song(long id, String title, String artist, long artistId, String album, long albumId, String path, long duration) {
         this.id = id;

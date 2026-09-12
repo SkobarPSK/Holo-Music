@@ -40,6 +40,7 @@ public class LibraryRepository {
                 SortPrefs.getExcludedExtensions(context), SortPrefs.getMinDurationSeconds(context));
         for (Song s : songs) {
             MediaScanner.resolveMissingTags(s);
+            s.isBroken = MediaScanner.isLikelyBroken(s.path);
         }
         cache.replaceAll(songs);
         return songs;

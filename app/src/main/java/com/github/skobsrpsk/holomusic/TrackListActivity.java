@@ -138,6 +138,7 @@ public class TrackListActivity extends BaseActivity {
             result = MediaScanner.filterByFolders(result, SortPrefs.getLibraryFolders(TrackListActivity.this));
             for (Song s : result) {
                 MediaScanner.resolveMissingTags(s);
+                s.isBroken = MediaScanner.isLikelyBroken(s.path);
             }
             return result;
         }

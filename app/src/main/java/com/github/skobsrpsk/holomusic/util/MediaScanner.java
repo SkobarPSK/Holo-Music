@@ -453,4 +453,53 @@ public class MediaScanner {
     private static boolean isEmpty(String value) {
         return value == null || value.trim().isEmpty();
     }
+
+    // Меньше этого размера реальный трек физически не уместится — типичный
+    // случай: файл от оборванной закачки (например, ВК-загрузчиком),
+    // который MediaStore всё равно проиндексировал по расширению.
+    private static final long MIN_PLAUSIBLE_FILE_SIZE = 8 * 1024;
+
+    /**
+     * Грубая, но дешёвая эвристика "этот файл, похоже, не проиграется" —
+     * не запускает воспроизведение, просто проверяет физический размер и
+     * (для mp3) — что сразу после тега действительно начинается настоящий
+     * MP3-фрейм (сигнатура синхронизации MPEG: 0xFF + три старших бита
+     * следующего байта). Ловит самый частый жизненный случай — оборванные
+     * закачки, у которых теги на месте, а аудио-данных нет или почти нет,
+     * хотя MediaStore всё равно показывает файл как обычный трек.
+     * Вызывать только вне UI-потока — открывает файл на чтение.
+     */
+    public static boolean isLikelyBroken(String path) {
+        if (path == null) return false;
+        java.io.File file = new java.io.File(path);
+        long len = file.length();
+        if (len < MIN_PLAUSIBLE_FILE_SIZE) return true;
+        if (!path.toLowerCase(java.util.Locale.ROOT).endsWith(".mp3")) {
+            return false; // проверка сигнатуры имеет смысл только для mp3
+        }
+
+        java.io.RandomAccessFile raf = null;
+        try {
+            raf = new java.io.RandomAccessFile(file, "r");
+            byte[] header = new byte[10];
+            long audioStart = 0;
+            if (raf.read(header) == 10 && header[0] == 'I' && header[1] == 'D' && header[2] == '3') {
+                audioStart = 10L + Mp3TagIO.synchsafeToInt(header, 6);
+            }
+            if (audioStart + 2 > len) return true; // тег "съедает" весь файл целиком
+            raf.seek(audioStart);
+            byte[] sync = new byte[2];
+            raf.readFully(sync);
+            return !((sync[0] & 0xFF) == 0xFF && (sync[1] & 0xE0) == 0xE0);
+        } catch (java.io.IOException e) {
+            return true; // не смогли прочитать файл — тоже подозрительно
+        } finally {
+            if (raf != null) {
+                try {
+                    raf.close();
+                } catch (java.io.IOException ignored) {
+                }
+            }
+        }
+    }
 }

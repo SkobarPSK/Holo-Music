@@ -103,17 +103,34 @@ public class SettingsInterfaceActivity extends Activity {
     }
 
     /**
-     * Полный перезапуск процесса — самый надёжный способ гарантированно
-     * применить новый язык сразу везде, включая уже запущенный
-     * PlayerService (его уведомление/канал иначе остались бы на старом
-     * языке до следующего пересоздания). Если что-то играет — воспроизведение
-     * прервётся; пользователь уже предупреждён диалогом выше.
+     * "Настоящий" перезапуск процесса. Раньше здесь сразу после
+     * startActivity() вызывался killProcess() — но Intent с NEW_TASK для
+     * того же приложения не создаёт новый OS-процесс, это всё тот же PID,
+     * что и у текущего экрана. killProcess() убивал заодно и только что
+     * запрошенную Activity — приложение просто закрывалось, а не
+     * перезапускалось, и смена языка выглядела так, будто "не работает".
+     * Правильный способ — дать текущему процессу полностью умереть, а
+     * перезапуск запланировать через AlarmManager с небольшой задержкой:
+     * тогда система создаёт для него уже настоящий новый процесс.
      */
     private void restartApp() {
         Intent intent = new Intent(this, MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
-        android.os.Process.killProcess(android.os.Process.myPid());
+        int flags = android.app.PendingIntent.FLAG_ONE_SHOT;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            flags |= android.app.PendingIntent.FLAG_IMMUTABLE;
+        }
+        android.app.PendingIntent pendingIntent = android.app.PendingIntent.getActivity(this, 0, intent, flags);
+        android.app.AlarmManager alarmManager = (android.app.AlarmManager) getSystemService(ALARM_SERVICE);
+        if (alarmManager != null) {
+            alarmManager.set(android.app.AlarmManager.RTC, System.currentTimeMillis() + 300, pendingIntent);
+        }
+        // finishAffinity() закрывает весь стек Activity этого приложения,
+        // System.exit(0) гарантированно валит процесс целиком (включая
+        // PlayerService, если он был запущен) — только после этого имеет
+        // смысл запланированный выше перезапуск.
+        finishAffinity();
+        System.exit(0);
     }
 
     private void refreshLanguageText(TextView languageText) {
@@ -132,6 +149,18 @@ public class SettingsInterfaceActivity extends Activity {
                 return "Русский";
             case "en":
                 return "English";
+            case "es":
+                return "Español";
+            case "uk":
+                return "Українська";
+            case "be":
+                return "Беларуская";
+            case "pl":
+                return "Polski";
+            case "fr":
+                return "Français";
+            case "pt-BR":
+                return "Português (Brasil)";
             default:
                 return code;
         }

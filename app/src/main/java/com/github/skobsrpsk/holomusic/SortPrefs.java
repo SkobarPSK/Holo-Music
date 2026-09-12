@@ -26,7 +26,7 @@ public class SortPrefs {
      * которое нужно расширить при добавлении нового языка (плюс сам
      * values-xx/strings.xml с переводом).
      */
-    public static final String[] SUPPORTED_LANGUAGES = {"ru", "en"};
+    public static final String[] SUPPORTED_LANGUAGES = {"ru", "en", "es", "uk", "be", "pl", "fr", "pt-BR"};
 
     /** "" означает "системный" — используем локаль устройства как есть. */
     public static String getLanguage(Context context) {
@@ -34,7 +34,13 @@ public class SortPrefs {
     }
 
     public static void setLanguage(Context context, String languageCode) {
-        prefs(context).edit().putString(KEY_LANGUAGE, languageCode == null ? "" : languageCode).apply();
+        // commit(), не apply(): сразу после этого вызова приложение
+        // намеренно убивает свой процесс (restartApp() в
+        // SettingsInterfaceActivity), чтобы применить смену языка. apply()
+        // пишет на диск асинхронно и могла не успеть до System.exit() —
+        // новый процесс тогда читал бы ещё старое значение с диска.
+        // commit() блокируется, пока запись не завершится физически.
+        prefs(context).edit().putString(KEY_LANGUAGE, languageCode == null ? "" : languageCode).commit();
     }
 
     public static boolean isFirstRun(Context context) {

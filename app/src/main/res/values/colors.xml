@@ -12,4 +12,5 @@
     <color name="holo_blue_dark">#0099CC</color>
     <color name="list_pressed">#262626</color>
     <color name="now_playing_row_bg">#1A33B5E5</color>
+    <color name="warning_orange">#FFBB33</color>
 </resources>

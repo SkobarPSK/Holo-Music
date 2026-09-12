@@ -201,7 +201,10 @@ public class PlaylistDetailActivity extends BaseActivity {
                 List<Song> result = new ArrayList<>();
                 for (Long songId : PlaylistStore.getPlaylist(PlaylistDetailActivity.this, playlistName).songIds) {
                     Song song = MediaScanner.getSongById(PlaylistDetailActivity.this, songId);
-                    if (song != null) result.add(song);
+                    if (song != null) {
+                        song.isBroken = MediaScanner.isLikelyBroken(song.path);
+                        result.add(song);
+                    }
                 }
                 return result;
             }

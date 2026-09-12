@@ -25,7 +25,7 @@ import java.util.List;
 public class LibraryCache extends SQLiteOpenHelper {
 
     private static final String DB_NAME = "holo_music_cache.db";
-    private static final int DB_VERSION = 1;
+    private static final int DB_VERSION = 2; // v2: добавили is_broken
     private static final String TABLE = "songs";
 
     public LibraryCache(Context context) {
@@ -42,7 +42,8 @@ public class LibraryCache extends SQLiteOpenHelper {
                 "album TEXT," +
                 "album_id INTEGER," +
                 "path TEXT," +
-                "duration INTEGER" +
+                "duration INTEGER," +
+                "is_broken INTEGER DEFAULT 0" +
                 ")");
     }
 
@@ -78,6 +79,7 @@ public class LibraryCache extends SQLiteOpenHelper {
                 cv.put("album_id", s.albumId);
                 cv.put("path", s.path);
                 cv.put("duration", s.duration);
+                cv.put("is_broken", s.isBroken ? 1 : 0);
                 db.insert(TABLE, null, cv);
             }
             db.setTransactionSuccessful();
@@ -100,9 +102,10 @@ public class LibraryCache extends SQLiteOpenHelper {
                 int albumIdCol = c.getColumnIndex("album_id");
                 int pathCol = c.getColumnIndex("path");
                 int durationCol = c.getColumnIndex("duration");
+                int isBrokenCol = c.getColumnIndex("is_broken");
 
                 while (c.moveToNext()) {
-                    result.add(new Song(
+                    Song song = new Song(
                             c.getLong(idCol),
                             c.getString(titleCol),
                             c.getString(artistCol),
@@ -111,7 +114,9 @@ public class LibraryCache extends SQLiteOpenHelper {
                             c.getLong(albumIdCol),
                             c.getString(pathCol),
                             c.getLong(durationCol)
-                    ));
+                    );
+                    song.isBroken = isBrokenCol >= 0 && c.getInt(isBrokenCol) != 0;
+                    result.add(song);
                 }
             } finally {
                 c.close();
@@ -137,6 +142,7 @@ public class LibraryCache extends SQLiteOpenHelper {
         cv.put("album_id", s.albumId);
         cv.put("path", s.path);
         cv.put("duration", s.duration);
+        cv.put("is_broken", s.isBroken ? 1 : 0);
         db.insertWithOnConflict(TABLE, null, cv, SQLiteDatabase.CONFLICT_REPLACE);
     }
 

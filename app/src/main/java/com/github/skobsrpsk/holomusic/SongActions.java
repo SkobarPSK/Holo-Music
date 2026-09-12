@@ -208,6 +208,7 @@ public class SongActions {
 
         Song fresh = com.github.skobsrpsk.holomusic.util.MediaScanner.getSongByPath(activity, path);
         if (fresh != null) {
+            fresh.isBroken = com.github.skobsrpsk.holomusic.util.MediaScanner.isLikelyBroken(path);
             new LibraryCache(activity).updateSong(fresh);
         }
     }
